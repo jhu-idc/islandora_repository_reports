@@ -31,7 +31,7 @@ class IslandoraRepositoryReportsFieldListAutocompleteController extends Controll
     foreach (array_keys($content_types) as $content_type) {
       $all_field_defs = \Drupal::service('entity_field.manager')->getFieldDefinitions('node', $content_type);
       // For now, only support specific field types.
-      $allowed_field_types = ['string', 'string_long', 'text', 'text_long'];
+      $allowed_field_types = ['string', 'string_long', 'text', 'text_long', 'entity_reference'];
       foreach ($all_field_defs as $field_name => $field_def) {
         if (in_array($field_name, $seen_field_names)) {
           continue;

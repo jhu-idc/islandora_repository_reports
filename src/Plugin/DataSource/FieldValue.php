@@ -81,20 +81,37 @@ class FieldValue implements IslandoraRepositoryReportsDataSourceInterface {
       }
       catch (\Exception $e) {
         \Drupal::messenger()->addWarning(t("Field '@field_name' does not exist.", ['@field_name' => $field_name]));
+        return [];
       }
+
       if ($node->hasField($field_name)) {
         // If we add additional field types, we will need to add logic here to
         // get their values.
-        $field_values = $node->get($field_name)->getValue();
-        if (count($field_values) > 0) {
-          foreach ($field_values as $field_value) {
-            if (isset($value_counts[$field_value['value']])) {
-              $value_counts[$field_value['value']]++;
+        switch ($field_type) {
+        case 'entity_reference':
+            $field_nodes = $node->get($field_name)->referencedEntities();
+            foreach ($field_nodes as $val) {
+              if (isset($value_counts[$val->get('name')->getValue()[0]['value']])) {
+                $value_counts[$val->get('name')->getValue()[0]['value']]++;
+              }
+              else {
+                $value_counts[$val->get('name')->getValue()[0]['value']] = 1;
+              }
             }
-            else {
-              $value_counts[$field_value['value']] = 1;
+            break;
+          default:
+            $field_values = $node->get($field_name)->getValue();
+            if (count($field_values) > 0) {
+              foreach ($field_values as $field_value) {
+                if (isset($value_counts[$field_value['value']])) {
+                  $value_counts[$field_value['value']]++;
+                }
+                else {
+                  $value_counts[$field_value['value']] = 1;
+                }
+              }
             }
-          }
+            break;
         }
       }
     }

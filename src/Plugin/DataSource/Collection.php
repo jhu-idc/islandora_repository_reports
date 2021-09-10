@@ -18,7 +18,7 @@ class Collection implements IslandoraRepositoryReportsDataSourceInterface {
    * {@inheritdoc}
    */
   public function getName() {
-    return t('Nodes by Islandora collection');
+    return t('Repository item count by Collection');
   }
 
   /**
@@ -39,7 +39,7 @@ class Collection implements IslandoraRepositoryReportsDataSourceInterface {
    * {@inheritdoc}
    */
   public function getChartTitle($total) {
-    return t('@total total nodes broken down by collection.', ['@total' => $total]);
+    return t('@total total repository items broken down by collection. (If a collection is not listed here, it\'s because it contains no repository items directly.)', ['@total' => $total]);
   }
 
   /**
@@ -53,19 +53,21 @@ class Collection implements IslandoraRepositoryReportsDataSourceInterface {
 
     $entity_type_manager = \Drupal::service('entity_type.manager');
     $node_storage = $entity_type_manager->getStorage('node');
-    $result = $node_storage->getAggregateQuery()
-      ->groupBy('field_member_of')
-      ->aggregate('field_member_of', 'COUNT')
-      ->condition('type', $utilities->getSelectedContentTypes(), 'IN')
-      ->execute();
+
+    // get the collections
+    $result = $node_storage->getQuery()->condition('type','collection_object')->execute();
+
+    // now see how many items reference the collection
     $collection_counts = [];
-    foreach ($result as $collection) {
-      if (!is_null($collection['field_member_of_target_id'])) {
-        if ($collection_node = \Drupal::entityTypeManager()->getStorage('node')->load($collection['field_member_of_target_id'])) {
-          if ($utilities->nodeIsCollection($collection_node)) {
-            $collection_counts[$collection_node->getTitle()] = $collection['field_member_of_count'];
-          }
-        }
+    foreach ($result as $col=>$col_id) {
+      $items = $node_storage->getQuery()
+        ->condition('type', ['islandora_object'], 'IN')
+        ->condition('field_member_of', [$col_id], 'IN')
+        ->execute();
+
+      if(($num_items = count($items)) > 0) {
+        $collection_node = \Drupal::entityTypeManager()->getStorage('node')->load($col_id);
+        $collection_counts[$collection_node->getTitle()] = $num_items;
       }
     }
 
